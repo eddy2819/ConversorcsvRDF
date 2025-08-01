@@ -1,101 +1,253 @@
-import Image from "next/image";
+"use client"
+
+import { useState } from "react"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Upload, FileText, Network, Edit } from "lucide-react"
+import CsvUploader from "@/components/csv-uploader"
+import ColumnMapper from "@/components/column-mapper"
+import TripletsViewer from "@/components/triplets-viewer"
+import GraphVisualization from "@/components/graph-visualization"
+import JsonEditor from "@/components/json-editor"
+import FilterPanel from "@/components/filter-panel"
+
+export interface CsvData {
+  headers: string[]
+  rows: string[][]
+}
+
+export interface ColumnMapping {
+  [key: string]: {
+    rdfProperty: string
+    dataType: string
+    isSubject?: boolean
+    isPredicate?: boolean
+    isObject?: boolean
+  }
+}
+
+export interface Triplet {
+  subject: string
+  predicate: string
+  object: string
+  dataType?: string
+}
 
 export default function Home() {
-  return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-8 row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="https://nextjs.org/icons/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-semibold">
-              app/page.tsx
-            </code>
-            .
-          </li>
-          <li>Save and see your changes instantly.</li>
-        </ol>
+  const [csvData, setCsvData] = useState<CsvData | null>(null)
+  const [columnMapping, setColumnMapping] = useState<ColumnMapping>({})
+  const [triplets, setTriplets] = useState<Triplet[]>([])
+  const [filteredTriplets, setFilteredTriplets] = useState<Triplet[]>([])
+  const [rdfJson, setRdfJson] = useState<any>(null)
+  const [activeTab, setActiveTab] = useState("upload")
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="https://nextjs.org/icons/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:min-w-44"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+  const handleCsvLoad = (data: CsvData) => {
+    setCsvData(data)
+    setActiveTab("mapping")
+  }
+
+  const handleMappingComplete = (mapping: ColumnMapping) => {
+    setColumnMapping(mapping)
+    setActiveTab("processing")
+  }
+
+  const handleTripletsGenerated = (generatedTriplets: Triplet[], jsonData: any) => {
+    setTriplets(generatedTriplets)
+    setFilteredTriplets(generatedTriplets)
+    setRdfJson(jsonData)
+    setActiveTab("triplets")
+  }
+
+  const handleFilterChange = (filtered: Triplet[]) => {
+    setFilteredTriplets(filtered)
+  }
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-4">
+      <div className="max-w-7xl mx-auto">
+        <div className="text-center mb-8">
+          <h1 className="text-4xl font-bold text-slate-800 mb-2">Procesador CSV a RDF</h1>
+          <p className="text-slate-600 text-lg">Convierte datos CSV en tripletas RDF</p>
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-6 flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="https://nextjs.org/icons/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="https://nextjs.org/icons/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="https://nextjs.org/icons/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
+
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+          <TabsList className="grid w-full grid-cols-6 mb-6">
+            <TabsTrigger value="upload" className="flex items-center gap-2">
+              <Upload className="w-4 h-4" />
+              Cargar CSV
+            </TabsTrigger>
+            <TabsTrigger value="mapping" disabled={!csvData} className="flex items-center gap-2">
+              <FileText className="w-4 h-4" />
+              Mapeo
+            </TabsTrigger>
+            <TabsTrigger
+              value="processing"
+              disabled={!Object.keys(columnMapping).length}
+              className="flex items-center gap-2"
+            >
+              <Network className="w-4 h-4" />
+              Procesar
+            </TabsTrigger>
+            <TabsTrigger value="triplets" disabled={!triplets.length} className="flex items-center gap-2">
+              <FileText className="w-4 h-4" />
+              Tripletas
+            </TabsTrigger>
+            <TabsTrigger value="graph" disabled={!triplets.length} className="flex items-center gap-2">
+              <Network className="w-4 h-4" />
+              Grafo
+            </TabsTrigger>
+            <TabsTrigger value="json" disabled={!rdfJson} className="flex items-center gap-2">
+              <Edit className="w-4 h-4" />
+              JSON
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="upload">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Upload className="w-5 h-5" />
+                  Cargar Archivo CSV
+                </CardTitle>
+                <CardDescription>Selecciona un archivo CSV para comenzar el procesamiento</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <CsvUploader onCsvLoad={handleCsvLoad} />
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="mapping">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <FileText className="w-5 h-5" />
+                  Mapeo de Columnas
+                </CardTitle>
+                <CardDescription>Define cómo mapear las columnas CSV a propiedades RDF</CardDescription>
+              </CardHeader>
+              <CardContent>
+                {csvData && <ColumnMapper csvData={csvData} onMappingComplete={handleMappingComplete} />}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="processing">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Network className="w-5 h-5" />
+                  Procesamiento RDF
+                </CardTitle>
+                <CardDescription>Convierte los datos CSV en tripletas RDF usando Python</CardDescription>
+              </CardHeader>
+              <CardContent>
+                {csvData && columnMapping && (
+                  <div className="space-y-4">
+                    <div className="bg-slate-50 p-4 rounded-lg">
+                      <h3 className="font-semibold mb-2">Configuración de Procesamiento</h3>
+                      <div className="grid grid-cols-2 gap-4 text-sm">
+                        <div>
+                          <span className="font-medium">Filas a procesar:</span> {csvData.rows.length}
+                        </div>
+                        <div>
+                          <span className="font-medium">Columnas mapeadas:</span> {Object.keys(columnMapping).length}
+                        </div>
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => {
+                        // Simular procesamiento y generar tripletas
+                        const generatedTriplets: Triplet[] = []
+                        const baseUri = "http://example.org/"
+
+                        csvData.rows.forEach((row, index) => {
+                          const subject = `${baseUri}entity_${index + 1}`
+
+                          csvData.headers.forEach((header, colIndex) => {
+                            if (columnMapping[header]) {
+                              const mapping = columnMapping[header]
+                              const value = row[colIndex]
+
+                              if (value && value.trim()) {
+                                generatedTriplets.push({
+                                  subject,
+                                  predicate: mapping.rdfProperty,
+                                  object: value,
+                                  dataType: mapping.dataType,
+                                })
+                              }
+                            }
+                          })
+                        })
+
+                        const jsonData = {
+                          "@context": {
+                            "@base": baseUri,
+                            rdf: "http://www.w3.org/1999/02/22-rdf-syntax-ns#",
+                            rdfs: "http://www.w3.org/2000/01/rdf-schema#",
+                          },
+                          "@graph": generatedTriplets.map((t) => ({
+                            "@id": t.subject,
+                            [t.predicate]: {
+                              "@value": t.object,
+                              "@type": t.dataType,
+                            },
+                          })),
+                        }
+
+                        handleTripletsGenerated(generatedTriplets, jsonData)
+                      }}
+                      className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 px-6 rounded-lg font-medium transition-colors"
+                    >
+                      Procesar y Generar RDF
+                    </button>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="triplets">
+            <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+              <div className="lg:col-span-1">
+                <FilterPanel triplets={triplets} onFilterChange={handleFilterChange} />
+              </div>
+              <div className="lg:col-span-3">
+                <TripletsViewer triplets={filteredTriplets} />
+              </div>
+            </div>
+          </TabsContent>
+
+          <TabsContent value="graph">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Network className="w-5 h-5" />
+                  Visualización de Grafo
+                </CardTitle>
+                <CardDescription>Visualización interactiva del grafo RDF generado</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <GraphVisualization triplets={filteredTriplets} />
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="json">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Edit className="w-5 h-5" />
+                  Editor JSON-LD
+                </CardTitle>
+                <CardDescription>Edita el JSON-LD generado del RDF</CardDescription>
+              </CardHeader>
+              <CardContent>{rdfJson && <JsonEditor initialJson={rdfJson} />}</CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
+      </div>
     </div>
-  );
+  )
 }
